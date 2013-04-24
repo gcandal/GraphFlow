@@ -10,8 +10,6 @@
 #include <climits>
 #include <cmath>
 #include <iostream>
-#include <Windows.h>
-#include <winbase.h>
 using namespace std;
 
 template <class T> class Edge;
@@ -515,35 +513,27 @@ int Graph<T>::FordFulk(const T &s, const T &t) {
 	int min=INT_INFINITY, cand;
 	Graph<T> gr;
 	vector<T> res;
-	SYSTEMTIME t1, t2;
-	double a[]={0,0,0,0};
+
 	while(1) {
 		gr=getGr();
-		GetSystemTime(&t1);
 		gr.unweightedShortestPath(s);
-		GetSystemTime(&t2);
-		a[0]+=t2.wMilliseconds-t1.wMilliseconds;
+
 		res=gr.getPath(s,t);
-		GetSystemTime(&t1);
-		a[1]+=t1.wMilliseconds-t2.wMilliseconds;
+
 		for(unsigned int i=0; i<res.size()-1; i++) {
 			cand=gr.getEdgeFlow(res[i],res[i+1]);
 			if(cand<min)
 				min=cand;
 		}
-		GetSystemTime(&t2);
-		a[2]=t2.wMilliseconds-t1.wMilliseconds;/*
+
 		for(unsigned int i=0; i<res.size()-1; i++)
-			if(!addFlow(res[i],res[i+1],min))
-				addFlow(res[i+1],res[i],-min);*/
-		for(unsigned int i=0; i<res.size()-1; i++)
-			if(getEdgeFlow(res[i],res[i+1])==0)
+			if(addFlow(res[i],res[i+1],min))
 				addFlow(res[i+1],res[i],-min);
-			else addFlow(res[i+1],res[i],min);
-		GetSystemTime(&t1);
+
+
 		if(*res.rbegin()!=t || res.size()<2)
 			break;
-		a[3]=t1.wMilliseconds-t2.wMilliseconds;
+
 		min=INT_INFINITY;
 	}
 
@@ -554,11 +544,6 @@ int Graph<T>::FordFulk(const T &s, const T &t) {
 	for(unsigned int i=0; i<e.size(); i++)
 		if(e[i].dest->getInfo()==t)
 			flow+=e[i].flow;
-
-	cout << "unweightedShortestPath" << a[0] << endl;
-	cout << "getPath" << a[1] << endl;
-	cout << "getEdgeFlow" << a[2] << endl;
-	cout << "addFlow" << a[3] << endl;
 
 	return flow;
 }

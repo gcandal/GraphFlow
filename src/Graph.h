@@ -1,19 +1,26 @@
-/*
- * Graph.h
- */
 #ifndef GRAPH_H_
 #define GRAPH_H_
 
 #include <vector>
 #include <queue>
 #include <list>
+#include <time.h>
 #include <climits>
 #include <cmath>
 #include <iostream>
+#include <Windows.h>
+#include <winbase.h>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <time.h>
+#include "graphviewer.h"
+#include "Exceptions.h"
+
 using namespace std;
 
-template <class T> class Edge;
-template <class T> class Graph;
+class Edge;
+class Graph;
 
 const int INT_INFINITY = INT_MAX;
 
@@ -22,636 +29,300 @@ const int INT_INFINITY = INT_MAX;
  * Class Vertex
  * ================================================================================================
  */
-template <class T>
+
+/**
+ * Represents a node of a graph
+ */
 class Vertex {
-	T info;
-	vector<Edge<T>  > adj;
-	bool visited;
-	int indegree;
-	double dist;
+	int info; ///> node's information
+	vector<Edge  > adj; ///> edges which have this node as origin
+	bool visited; ///> checks if was visited or not (used for
+	int indegree; ///> how many edges have this node as destiny
+	double dist; ///> distance to a given node
 public:
-	Vertex(T in);
-	friend class Graph<T>;
-	int in;
-	int out;
-	void addEdge(Vertex<T> *dest, double w);
-	void addEdge(Vertex<T> *dest, double w, double f);
-	void addEdge(Vertex<T> *dest, double w, double f, bool hide);
-	bool removeEdgeTo(Vertex<T> *d);
-	bool hideEdgeTo(Vertex<T> *d);
-	bool addFlowTo(Vertex<T> *d, const double flow);
+	Vertex(int in);
 
-	T getInfo() const;
-
-	int getDist() const;
-	int getIndegree() const;
-	vector<Edge<T> > getAdj() const;
-
-	Vertex<T>* getPath() const;
-
-	Vertex* path;
-
+	int in; ///> maximum flow that can get in
+	int out; ///> maximum flow that can get out
+	/**
+	 * Adds an edge with this node as origin
+	 * @param dest destiny node
+	 * @param w edge's maximum capacity
+	 */
+	void addEdge(Vertex *dest, double w);
+	/**
+	 * Adds an edge with this node as origin
+	 * @param dest destiny node
+	 * @param w edge's maximum capacity
+	 * @param f edge's flow
+	 */
+	void addEdge(Vertex *dest, double w, double f);
+	/**
+	 * Adds an edge with this node as origin
+	 * @param dest destiny node
+	 * @param w edge's maximum capacity
+	 * @param f edge's flow
+	 * @param hide hidden edge or not
+	 */
+	void addEdge(Vertex *dest, double w, double f, bool hide);
+	/**
+	 * Removes an edge, if it exists
+	 * @param d edge's destiny node
+	 * @return True if edge exists
+	 */
+	bool removeEdgeTo(Vertex *d);
+	/**
+	 * Hides an edge, if it exists
+	 * @param d edge's destiny node
+	 * @return True if edge exists
+	 */
+	bool hideEdgeTo(Vertex *d);
+	/**
+	 * Adds flow a given edge, if it exists
+	 * @param d edge's destiny node
+	 * @return True if edge exists
+	 */
+	bool addFlowTo(Vertex *d, const double flow);
+	/**
+	 * Changes an edge's flow, if it exists
+	 * @param d edge's destiny node
+	 * @return True if edge exists
+	 */
 	void updateEdgeFlow(unsigned int index, float f);
+	/**
+	 * @return Node's information
+	 */
+	int getInfo() const;
+	/**
+	 * @return Distance to a given node
+	 */
+	int getDist() const;
+	/**
+	 * @return Number of edges with this node as destiny
+	 */
+	int getIndegree() const;
+	/**
+	 * @return Set of edges with this node as origin
+	 */
+	vector<Edge > getAdj() const;
+	/**
+	 * @return Node before this one in the path which connects it to a given node
+	 */
+	Vertex* getPath() const;
+
+	Vertex* path; ///> node before this one in the path which connects it to a given node
+
+
+	friend class Graph;
 };
 
 
-template <class T>
 struct vertex_greater_than {
-	bool operator()(Vertex<T> * a, Vertex<T> * b) const {
+	bool operator()(Vertex * a, Vertex * b) const {
 		return a->getDist() > b->getDist();
 	}
 };
 
 
-template <class T>
-bool Vertex<T>::removeEdgeTo(Vertex<T> *d) {
-	d->indegree--;
-	typename vector<Edge<T> >::iterator it= adj.begin();
-	typename vector<Edge<T> >::iterator ite= adj.end();
-	while (it!=ite) {
-		if (it->dest == d) {
-			adj.erase(it);
-			return true;
-		}
-		else it++;
-	}
-	return false;
-}
-
-template <class T>
-bool Vertex<T>::hideEdgeTo(Vertex<T> *d) {
-	typename vector<Edge<T> >::iterator it= adj.begin();
-	typename vector<Edge<T> >::iterator ite= adj.end();
-	while (it!=ite) {
-		if (it->dest == d) {
-			it->hidden=true;
-			return true;
-		}
-		else it++;
-	}
-	return false;
-}
-
-template <class T>
-bool Vertex<T>::addFlowTo(Vertex<T> *d, const double flow) {
-	typename vector<Edge<T> >::iterator it= adj.begin();
-	typename vector<Edge<T> >::iterator ite= adj.end();
-	while (it!=ite) {
-		if (it->dest == d) {
-			it->flow+=flow;
-			return true;
-		}
-		else it++;
-	}
-	return false;
-}
-
-//atualizado pelo exercício 5
-template <class T>
-Vertex<T>::Vertex(T in): info(in), visited(false), indegree(0), dist(0), in(0), out(0) {
-	path = NULL;
-}
-
-
-template <class T>
-void Vertex<T>::addEdge(Vertex<T> *dest, double w) {
-	Edge<T> edgeD(dest,w);
-	edgeD.orig = this;
-	dest->in++;
-	this->out++;
-	adj.push_back(edgeD);
-}
-
-template <class T>
-void Vertex<T>::addEdge(Vertex<T> *dest, double w, double f)
-{
-	Edge<T> edgeD(dest, w, f);
-	edgeD.orig = this;
-	dest->in++;
-	this->out++;
-	adj.push_back(edgeD);
-}
-
-template <class T>
-void Vertex<T>::addEdge(Vertex<T> *dest, double w, double f, bool hide)
-{
-	Edge<T> edgeD(dest, w, f);
-	edgeD.orig = this;
-	//edgeD.hidden=hide;
-	adj.push_back(edgeD);
-}
-
-template <class T>
-T Vertex<T>::getInfo() const {
-	return this->info;
-}
-
-template <class T>
-int Vertex<T>::getDist() const {
-	return this->dist;
-}
-
-template <class T>
-vector<Edge<T> > Vertex<T>::getAdj() const {
-	return this->adj;
-}
-
-template <class T>
-Vertex<T>* Vertex<T>::getPath() const {
-	return this->path;
-}
-
-template <class T>
-int Vertex<T>::getIndegree() const {
-	return this->indegree;
-}
-
-template <class T>
-void Vertex<T>::updateEdgeFlow(unsigned int index, float f)
-{
-	if (index >= adj.size())
-		return;
-	adj[index].flow = f;
-}
 
 /* ================================================================================================
  * Class Edge
  * ================================================================================================
  */
-template <class T>
-class Edge {
-	Vertex<T> * dest;
-	Vertex<T> * orig;
-	double weight;
-	double flow;
-	bool hidden;
-public:
-	Edge(Vertex<T> *d, double w, double f=0);
-	Edge(Vertex<T> *d, double w, double f, bool rev);
-	double getFlow() const;
-	double getWeight() const;
-	Vertex<T> * getOri();
-	Vertex<T> * getDest();
 
-	friend class Graph<T>;
-	friend class Vertex<T>;
+/*
+ * Represents an edge connection two nodes.
+ */
+class Edge {
+	Vertex * dest; ///> destiny node
+	Vertex * orig; ///> origin node
+	double weight; ///> edge's capacity
+	double flow; ///> edge's current flow
+	bool hidden; ///> keeps track if the edge is hidden or not (used in Dinic's algorithm)
+public:
+	/**
+	 * @param d destiny node
+	 * @param w edge's capacity
+	 * @param f edge's flow
+	 */
+	Edge(Vertex *d, double w, double f=0);
+	/**
+	 * @param d destiny node
+	 * @param w edge's capacity
+	 * @param f edge's flow
+	 * @param rev hidden edge or not
+	 */
+	Edge(Vertex *d, double w, double f, bool rev);
+	/**
+	 * @return Edge's flow
+	 */
+	double getFlow() const;
+	/**
+	 * @return Edge's weight
+	 */
+	double getWeight() const;
+	/**
+	 * @return Edge's origin node
+	 */
+	Vertex * getOri();
+	/**
+	 * @return Edge's desitny node
+	 */
+	Vertex * getDest();
+
+	friend class Graph;
+	friend class Vertex;
 };
 
-template <class T>
-Edge<T>::Edge(Vertex<T> *d, double w, double f): dest(d), weight(w), flow(f), hidden(false){}
 
-template <class T>
-Edge<T>::Edge(Vertex<T> *d, double w, double f, bool rev): dest(d), weight(w), flow(f),hidden(rev){}
-
-template <class T>
-double Edge<T>::getFlow() const {
-	return flow;
-}
-
-template <class T>
-double Edge<T>::getWeight() const {
-	return weight;
-}
-
-template <class T>
-Vertex<T> * Edge<T>::getOri() {
-	return orig;
-}
-
-template <class T>
-Vertex<T> * Edge<T>::getDest() {
-	return dest;
-}
 
 /* ================================================================================================
  * Class Graph
  * ================================================================================================
  */
-template <class T>
+
 class Graph {
-	vector<Vertex<T> *> vertexSet;
-	void getPathTo(Vertex<T> *origin, list<T> &res);
-	void printEdges(vector<Edge<T> > e);
-	Graph<T> getGr();
-	int getEdgeFlow(const T &s, const T &t);
+	vector<Vertex *> vertexSet; ///> set of the nodes in the graph
+	/**
+	 * Prints a set of edges
+	 * @param e Edges to be printed
+	 */
+	void printEdges(vector<Edge > e);
+	/**
+	 * Builds a residual Graph, used on Dinic's and Fold-Fulkerson's algorithms
+	 * @return Residual graph
+	 */
+	Graph getGr();
+	/**
+	 * @param s source node
+	 * @param t target node
+	 * @return Flow of a given edge
+	 */
+	int getEdgeFlow(const int &s, const int &t);
 public:
-	vector<Edge<T> > getEdges();
-
-	bool addVertex(const T &in);
-	bool addEdge(const T &sourc, const T &dest, double w,double f=0);
-	bool addEdge(const T &sourc, const T &dest, double w,double f,bool hidden);
-	bool removeVertex(const T &in);
-	bool removeEdge(const T &sourc, const T &dest);
-	bool hideEdge(const T &sourc, const T &dest);
-	bool addFlow(const T &sourc, const T &dest, const double flow);
-	vector<Vertex<T> * > getVertexSet() const;
+	/**
+	 * @return All edges in the graph
+	 */
+	vector<Edge > getEdges();
+	/**
+	 * @param in New node's information
+	 * @return True on success (false if already existed)
+	 */
+	bool addVertex(const int &in);
+	/**
+	 * @param sourc Origin node
+	 * @param dest Destiny node
+	 * @param w Edge's weight
+	 * @param f Edge's flow
+	 * @return True on success (false if already existed)
+	 */
+	bool addEdge(const int &sourc, const int &dest, double w,double f=0);
+	/**
+	 * @param sourc Origin node
+	 * @param dest Destiny node
+	 * @param w Edge's weight
+	 * @param f Edge's flow
+	 * @param hidden If its an hidden edge or not
+	 * @return True on success (false if already existed)
+	 */
+	bool addEdge(const int &sourc, const int &dest, double w,double f,bool hidden);
+	/**
+	 * @param Information within the node to be removed
+	 * @return True on success (false if doesn't exist)
+	 */
+	bool removeVertex(const int &in);
+	/**
+	 * @param sourc Edge's origin node information
+	 * @param sourc Edge's destiny node information
+	 * @return True on success (false if doesn't exist)
+	 */
+	bool removeEdge(const int &sourc, const int &dest);
+	/**
+	 * @param sourc Edge's origin node information
+	 * @param sourc Edge's destiny node information
+	 * @return True on success (false if doesn't exist)
+	 */
+	bool hideEdge(const int &sourc, const int &dest);
+	/**
+	 * @param sourc Edge's origin node information
+	 * @param sourc Edge's destiny node information
+	 * @param flow Flow to be added
+	 * @return True on success (false if doesn't exist)
+	 */
+	bool addFlow(const int &sourc, const int &dest, const double flow);
+	/**
+	 * Changes the flow of all edges in the graph to 0
+	 */
+	void resetEdgeFlow();
+	/**
+	 * @return All nodes in the graph
+	 */
+	vector<Vertex * > getVertexSet() const;
+	/**
+	 * @return Number of nodes in the graph
+	 */
 	int getNumVertex() const;
+	/**
+	 * @param v information in the node to be returned
+	 * @return Node with a given information
+	 */
+	Vertex* getVertex(const int &v) const;
+	/**
+	 * @return Nodes in the graph which aren't destiny for any edge
+	 */
+	vector<Vertex*> getSources() const;
+	/**
+	 * @param origin Start node
+	 * @param dest End node
+	 * @return Information of the nodes which make a path between two other nodes
+	 */
+	vector<int> getPath(const int &origin, const int &dest);
+	/**
+	 * Calculates the shortest distance between a node in the graph with all others
+	 * @param v Information of the node which serves as referential
+	 */
+	void unweightedShortestPath(const int &v);
+	/**
+	 * Runs Dinic's algorithm for maximum flow in the graph,
+	 * altering it's edges flow for the final one
+	 * @param s Source node's information
+	 * @param t Sink node's information
+	 * @return Graph's maximum flow
+	 */
+	int Dinic(const int &s, const int &t);
+	/**
+	 * Runs Ford-Fulkerson's algorithm for maximum flow in the graph,
+	 * altering it's edges flow for the final one
+	 * @param s Source node's information
+	 * @param t Sink node's information
+	 * @return Graph's maximum flow
+	 */
+	int FordFulk(const int &s, const int &t);
+	/**
+	 * Converts this graph into GraphViewer (graphical API) and show it
+	 */
+	void plotGraph();
+	/**
+	 * @param Filename/path.
+	 * Reads a graph from a file
+	 */
+	void readFile(string name);
+	/**
+	 * @param Filename/path.
+	 * Writes the graph to a file
+	 */
+	void writeFile(string name);
+	/**
+	 * @param str String to be checked
+	 * @return True if all chars are digits
+	 */
+	bool isNumber(string str);
 
-	Vertex<T>* getVertex(const T &v) const;
-	vector<Vertex<T>*> getSources() const;
-	vector<T> topologicalOrder();
-	vector<T> getPath(const T &origin, const T &dest);
-	void unweightedShortestPath(const T &v);
+	int menuEdges();
+	void menuFord();
+	void menuDinic();
 
-	int Dinic(const T &s, const T &t);
-	int FordFulk(const T &s, const T &t);
 };
 
 
-template <class T>
-int Graph<T>::getNumVertex() const {
-	return vertexSet.size();
-}
-template <class T>
-vector<Vertex<T> * > Graph<T>::getVertexSet() const {
-	return vertexSet;
-}
-
-template <class T>
-bool Graph<T>::addVertex(const T &in) {
-	typename vector<Vertex<T>*>::iterator it= vertexSet.begin();
-	typename vector<Vertex<T>*>::iterator ite= vertexSet.end();
-	for (; it!=ite; it++)
-		if ((*it)->info == in) return false;
-	Vertex<T> *v1 = new Vertex<T>(in);
-	vertexSet.push_back(v1);
-	return true;
-}
-
-template <class T>
-bool Graph<T>::removeVertex(const T &in) {
-	typename vector<Vertex<T>*>::iterator it= vertexSet.begin();
-	typename vector<Vertex<T>*>::iterator ite= vertexSet.end();
-	for (; it!=ite; it++) {
-		if ((*it)->info == in) {
-			Vertex<T> * v= *it;
-			vertexSet.erase(it);
-			typename vector<Vertex<T>*>::iterator it1= vertexSet.begin();
-			typename vector<Vertex<T>*>::iterator it1e= vertexSet.end();
-			for (; it1!=it1e; it1++) {
-				(*it1)->removeEdgeTo(v);
-			}
-
-			typename vector<Edge<T> >::iterator itAdj= v->adj.begin();
-			typename vector<Edge<T> >::iterator itAdje= v->adj.end();
-			for (; itAdj!=itAdje; itAdj++) {
-				itAdj->dest->indegree--;
-			}
-			delete v;
-			return true;
-		}
-	}
-	return false;
-}
-
-
-template <class T>
-bool Graph<T>::addEdge(const T &sourc, const T &dest, double w, double f) {
-	typename vector<Vertex<T>*>::iterator it= vertexSet.begin();
-	typename vector<Vertex<T>*>::iterator ite= vertexSet.end();
-	int found=0;
-	Vertex<T> *vS, *vD;
-	while (found!=2 && it!=ite ) {
-		if ( (*it)->info == sourc )
-		{ vS=*it; found++;}
-		if ( (*it)->info == dest )
-		{ vD=*it; found++;}
-		it ++;
-	}
-	if (found!=2) return false;
-	vD->indegree++;
-	vS->addEdge(vD,w,f);
-
-	return true;
-}
-
-template <class T>
-bool Graph<T>::addEdge(const T &sourc, const T &dest, double w, double f, bool hidden) {
-	typename vector<Vertex<T>*>::iterator it= vertexSet.begin();
-	typename vector<Vertex<T>*>::iterator ite= vertexSet.end();
-	int found=0;
-	Vertex<T> *vS, *vD;
-	while (found!=2 && it!=ite ) {
-		if ( (*it)->info == sourc )
-		{ vS=*it; found++;}
-		if ( (*it)->info == dest )
-		{ vD=*it; found++;}
-		it ++;
-	}
-	if (found!=2) return false;
-	vD->indegree++;
-	vS->addEdge(vD,w,f,hidden);
-
-	return true;
-}
-
-
-
-template <class T>
-bool Graph<T>::removeEdge(const T &sourc, const T &dest) {
-	typename vector<Vertex<T>*>::iterator it= vertexSet.begin();
-	typename vector<Vertex<T>*>::iterator ite= vertexSet.end();
-	int found=0;
-	Vertex<T> *vS, *vD;
-	while (found!=2 && it!=ite ) {
-		if ( (*it)->info == sourc )
-		{ vS=*it; found++;}
-		if ( (*it)->info == dest )
-		{ vD=*it; found++;}
-		it ++;
-	}
-	if (found!=2)
-		return false;
-
-	vD->indegree--;
-
-	return vS->removeEdgeTo(vD);
-}
-
-template <class T>
-bool Graph<T>::hideEdge(const T &sourc, const T &dest) {
-	typename vector<Vertex<T>*>::iterator it= vertexSet.begin();
-	typename vector<Vertex<T>*>::iterator ite= vertexSet.end();
-	int found=0;
-	Vertex<T> *vS, *vD;
-	while (found!=2 && it!=ite ) {
-		if ( (*it)->info == sourc )
-		{ vS=*it; found++;}
-		if ( (*it)->info == dest )
-		{ vD=*it; found++;}
-		it ++;
-	}
-	if (found!=2)
-		return false;
-
-	vD->indegree--;
-
-	return vS->hideEdgeTo(vD);
-}
-
-template <class T>
-bool Graph<T>::addFlow(const T &sourc, const T &dest, const double flow) {
-	typename vector<Vertex<T>*>::iterator it= vertexSet.begin();
-	typename vector<Vertex<T>*>::iterator ite= vertexSet.end();
-	int found=0;
-	Vertex<T> *vS, *vD;
-	while (found!=2 && it!=ite ) {
-		if ( (*it)->info == sourc )
-		{ vS=*it; found++;}
-		if ( (*it)->info == dest )
-		{ vD=*it; found++;}
-		it ++;
-	}
-	if (found!=2)
-		return false;
-
-	vD->indegree--;
-
-	return vS->addFlowTo(vD,flow);
-}
-
-
-
-template <class T>
-Vertex<T>* Graph<T>::getVertex(const T &v) const {
-	for(unsigned int i = 0; i < vertexSet.size(); i++)
-		if (vertexSet[i]->info == v) return vertexSet[i];
-	return NULL;
-}
-
-template<class T>
-vector<Vertex<T>*> Graph<T>::getSources() const {
-	vector< Vertex<T>* > buffer;
-	for(unsigned int i = 0; i < vertexSet.size(); i++) {
-		if( vertexSet[i]->indegree == 0 ) buffer.push_back( vertexSet[i] );
-	}
-	return buffer;
-}
-
-template<class T>
-vector<T> Graph<T>::getPath(const T &origin, const T &dest){
-
-	list<T> buffer;
-	Vertex<T>* v = getVertex(dest);
-
-	buffer.push_front(v->info);
-	while ( v->path != NULL &&  v->path->info != origin) {
-		v = v->path;
-		buffer.push_front(v->info);
-	}
-	if( v->path != NULL )
-		buffer.push_front(v->path->info);
-
-
-	vector<T> res;
-	while( !buffer.empty() ) {
-		res.push_back( buffer.front() );
-		buffer.pop_front();
-	}
-	return res;
-}
-
-
-
-template<class T>
-void Graph<T>::unweightedShortestPath(const T &s) {
-
-	for(unsigned int i = 0; i < vertexSet.size(); i++) {
-		vertexSet[i]->path = NULL;
-		vertexSet[i]->dist = INT_INFINITY;
-	}
-
-	Vertex<T>* v = getVertex(s);
-	v->dist = 0;
-	queue< Vertex<T>* > q;
-	q.push(v);
-
-	while( !q.empty() ) {
-		v = q.front(); q.pop();
-		for(unsigned int i = 0; i < v->adj.size(); i++) {
-			if(!v->adj[i].hidden) {
-				Vertex<T>* w = v->adj[i].dest;
-				if( w->dist == INT_INFINITY ) {
-					w->dist = v->dist + 1;
-					w->path = v;
-					q.push(w);
-				}
-			}
-		}
-	}
-}
-
-void printSquareArray(int ** arr, unsigned int size)
-{
-	for(unsigned int k = 0; k < size; k++)
-	{
-		if(k == 0)
-		{
-			cout <<  "   ";
-			for(unsigned int i = 0; i < size; i++)
-				cout <<  " " << i+1 << " ";
-			cout << endl;
-		}
-
-		for(unsigned int i = 0; i < size; i++)
-		{
-			if(i == 0)
-				cout <<  " " << k+1 << " ";
-
-			if(arr[k][i] == INT_INFINITY)
-				cout << " - ";
-			else
-				cout <<  " " << arr[k][i] << " ";
-		}
-
-		cout << endl;
-	}
-}
-
-template <class T>
-int Graph<T>::FordFulk(const T &s, const T &t) {
-	int min=INT_INFINITY, cand;
-	Graph<T> gr;
-	vector<T> res;
-
-	while(1) {
-		gr=getGr();
-		gr.unweightedShortestPath(s);
-
-		res=gr.getPath(s,t);
-
-		for(unsigned int i=0; i<res.size()-1; i++) {
-			cand=gr.getEdgeFlow(res[i],res[i+1]);
-			if(cand<min)
-				min=cand;
-		}
-
-		for(unsigned int i=0; i<res.size()-1; i++)
-			if(addFlow(res[i],res[i+1],min))
-				addFlow(res[i+1],res[i],-min);
-
-
-		if(*res.rbegin()!=t || res.size()<2)
-			break;
-
-		min=INT_INFINITY;
-	}
-
-	int flow=0;
-
-	vector<Edge<T> > e;
-	e=getEdges();
-	for(unsigned int i=0; i<e.size(); i++)
-		if(e[i].dest->getInfo()==t)
-			flow+=e[i].flow;
-
-	return flow;
-}
-
-template <class T>
-int Graph<T>::Dinic(const T &s, const T &t) {
-	int num=getNumVertex()-1;
-	int min=INT_INFINITY, cand;
-	Graph<T> gr;
-	vector<T> res;
-	vector<Edge<T> > er;
-	vector<Edge<T> > e;
-	int a=0;
-	while(1) {
-		gr=getGr();
-		gr.unweightedShortestPath(s);
-
-		if(gr.getVertex(t)->dist==INT_INFINITY)
-			break;
-
-		er=gr.getEdges();
-		for(unsigned int i=0; i<er.size(); i++)
-			if(er[i].orig->getDist()+1!=er[i].getDest()->getDist())
-				gr.hideEdge(er[i].orig->getInfo(),er[i].getDest()->getInfo());
-
-		res=gr.getPath(s,t);
-
-		for(unsigned int i=0; i<res.size()-1; i++) {
-			cand=gr.getEdgeFlow(res[i],res[i+1]);
-			if(cand<min)
-				min=cand;
-		}
-
-		for(unsigned int i=0; i<res.size()-1; i++)
-			if(!addFlow(res[i],res[i+1],min))
-				addFlow(res[i+1],res[i],-min);
-
-		e=getEdges();
-
-		if(getVertex(t)->dist==num)
-			break;
-
-		min=INT_INFINITY;
-		a++;
-	}
-
-	int flow=0;
-
-	e=getEdges();
-	for(unsigned int i=0; i<e.size(); i++)
-		if(e[i].dest->getInfo()==t)
-			flow+=e[i].flow;
-
-	return flow;
-}
-
-template<class T>
-vector<Edge<T> > Graph<T>::getEdges() {
-	vector<Vertex<T> *> v = getVertexSet();
-	vector<Edge<T> > e;
-	vector<Edge<T> > tmp;
-	for(unsigned int i=0; i<v.size(); i++) {
-		tmp=v[i]->getAdj();
-		e.insert(e.end(),tmp.begin(),tmp.end());
-	}
-
-	return e;
-}
-
-template<class T>
-int Graph<T>::getEdgeFlow(const T &s, const T &t) {
-	vector<Vertex<T> *> v = getVertexSet();
-	vector<Edge<T> > tmp;
-	for(unsigned int i=0; i<v.size(); i++) {
-		if(v[i]->getInfo()==s)
-			tmp=v[i]->getAdj();
-		for(unsigned int a=0; a<tmp.size(); a++)
-			if(tmp[a].dest->getInfo()==t)
-				return tmp[a].weight;
-	}
-
-	return 0;
-}
-
-template<class T>
-Graph<T> Graph<T>::getGr() {
-	vector<Edge<T> > e=getEdges();
-	Graph<T> ret;
-
-	for (unsigned int i = 0; i < this->vertexSet.size(); i++)
-		ret.addVertex(this->vertexSet[i]->info);
-
-	for (unsigned int a = 0; a < e.size(); a++) {
-		if(e[a].flow<e[a].weight)
-			ret.addEdge(e[a].orig->info, e[a].dest->info, e[a].weight-e[a].flow, 0);
-
-		if(e[a].flow>0)
-			ret.addEdge(e[a].dest->info, e[a].orig->info, e[a].flow, 0, true);
-
-	}
-
-	return ret;
-}
-
-template<class T>
-void Graph<T>::printEdges(vector<Edge<T> > e) {
-	for(unsigned int i=0; i<e.size(); i++)
-		cout << e[i].hidden << "  " << e[i].getFlow() << "/" << e[i].getWeight() << "  " << e[i].orig->getInfo() << " " << e[i].getDest()->getInfo() << "\n";
-}
-
-#endif /* GRAPH_H_ */
+#endif
